@@ -6,7 +6,7 @@ import joblib
 import pandas as pd
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG])
-model = joblib.load('random_forest_regressor.joblib')
+model = joblib.load('../artifacts/random_forest_regressor.joblib')
 
 app.layout = dbc.Container([
     html.H1("BrightPath's Central ML system", className="text-center my-4"),
