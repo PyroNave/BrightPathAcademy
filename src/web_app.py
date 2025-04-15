@@ -7,6 +7,7 @@ from dash.dependencies import Input, Output, State
 import os
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG])
+server = app.server
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
