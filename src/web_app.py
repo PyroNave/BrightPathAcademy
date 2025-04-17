@@ -255,7 +255,14 @@ def predict(n_clicks, *input_values):
         "Volunteering",
     ]
     try:
-        features = pd.DataFrame([dict(zip(feature_names, input_values))])
+        # Gather baseline features
+        features = dict(zip(feature_names, input_values))
+
+        # Attach extra columns from feature engineering
+        features['TotalExtracurricular'] = features['Extracurricular'] + features['Sports'] + features['Music'] + features['Volunteering']
+        features['Tutoring_ParentalSupport'] = features['Tutoring'] * features['ParentalSupport']
+
+        features = pd.DataFrame([features])
         prediction = model.predict(features)[0]
         return html.Span(
             f"Predicted Grade: {prediction:.2f}",
