@@ -5,6 +5,7 @@ import joblib
 from dash import html, dcc
 from dash.dependencies import Input, Output, State
 import os
+import plotly.express as px
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CYBORG])
 server = app.server
@@ -12,8 +13,10 @@ server = app.server
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 model_path = os.path.join(script_dir, "..", "artifacts", "random_forest_regressor.joblib")
+data_path = os.path.join(script_dir, "..", "artifacts", "Student_performance_data.csv")
 
 model = joblib.load(model_path)
+df = pd.read_csv(data_path)
 
 INPUT_FIELDS = [
     {
@@ -173,6 +176,22 @@ def create_form_row(field):
         className="mb-3",
     )
 
+gradeClasses = ['A', 'B', 'C', 'D', 'F']
+gradeClassCounts = df['GradeClass'].value_counts().reset_index()
+gradeClassCounts.columns = ['GradeClass', 'count']
+gradeClassCounts['GradeClass'] = [gradeClasses[int(x)] for x in gradeClassCounts['GradeClass']]
+
+gradeClassPieChart = px.pie(gradeClassCounts, values='count', names='GradeClass', title='Student performance by GradeClass')
+gradeClassPieChart.update_layout(
+    paper_bgcolor='#212529',
+    title_font_color='#f8f9fa',
+    legend_title_text='Grades',
+    legend=dict(
+        font=dict(color='#f8f9fa'),
+        bgcolor='#343a40'
+    )
+)
+
 app.layout = dbc.Container(
     [
         # Header
@@ -182,40 +201,78 @@ app.layout = dbc.Container(
             style={"color": "#f8f9fa"},
         ),
         dcc.Markdown(
-            "Where student data becomes insight",
+            "### Where student data becomes insight",
             className="text-center mb-5 text-muted",
         ),
-        
+
         dbc.Card(
-            [
-                dbc.CardHeader(
-                    "Predict Student Grade",
-                    className="text-center fw-bold fs-5",
-                    style={"backgroundColor": "#343a40", "color": "#f8f9fa"},
-                ),
-                dbc.CardBody(
-                    [create_form_row(field) for field in INPUT_FIELDS],
-                    className="p-4",
-                ),
-                dbc.CardFooter(
-                    dbc.Button(
-                        "Predict Grade",
-                        id="predict-btn",
-                        color="primary",
-                        className="w-100 fw-bold",
-                        size="lg",
+        [
+            dbc.CardHeader(
+                "Student analytics",
+                className="text-center fw-bold fs-5",
+                style={"backgroundColor": "#343a40", "color": "#f8f9fa"},
+            ),
+            dbc.CardBody(
+                [dbc.Row([
+                    dbc.Col(
+                        dcc.Graph(figure=gradeClassPieChart),
+                        className="shadow-sm",
+                        style={
+                            "padding": "10px",
+                            "maxWidth": "600px",
+                            "margin": "0 auto",
+                            "borderRadius": "10px",
+                            "backgroundColor": "#212529",
+                        }
                     ),
-                    className="p-0",
-                ),
-            ],
-            className="shadow-sm",
-            style={
-                "maxWidth": "600px",
-                "margin": "0 auto",
-                "borderRadius": "10px",
-                "backgroundColor": "#212529",
-            },
-        ),
+                ])],
+                className="p-4",
+            ),
+        ],
+        className="shadow-sm",
+        style={
+            "maxWidth": "600px",
+            "margin": "0 auto",
+            "borderRadius": "10px",
+            "backgroundColor": "#212529",
+        }),
+
+        
+
+        dbc.Row([
+            dbc.Col(dbc.Card(
+                [
+                    dbc.CardHeader(
+                        "Predict Student Grade",
+                        className="text-center fw-bold fs-5",
+                        style={"backgroundColor": "#343a40", "color": "#f8f9fa"},
+                    ),
+                    dbc.CardBody(
+                        [create_form_row(field) for field in INPUT_FIELDS],
+                        className="p-4",
+                    ),
+                    dbc.CardFooter(
+                        dbc.Button(
+                            "Predict Grade",
+                            id="predict-btn",
+                            color="primary",
+                            className="w-100 fw-bold",
+                            size="lg",
+                        ),
+                        className="p-0",
+                    ),
+                ],
+                className="shadow-sm",
+                style={
+                    "maxWidth": "600px",
+                    "margin": "0 auto",
+                    "borderRadius": "10px",
+                    "backgroundColor": "#212529",
+                })
+            ),
+        ]),
+        
+        
         
         html.Div(
             id="prediction-output",
@@ -271,5 +328,7 @@ def predict(n_clicks, *input_values):
     except Exception as e:
         return html.Span(f"Error: {str(e)}", style={"color": "#dc3545"})
 
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=8050)
+
