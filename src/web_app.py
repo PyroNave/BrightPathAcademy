@@ -177,6 +177,7 @@ def create_form_row(field):
     )
 
 gradeClasses = ['A', 'B', 'C', 'D', 'F']
+
 gradeClassCounts = df['GradeClass'].value_counts().reset_index()
 gradeClassCounts.columns = ['GradeClass', 'count']
 gradeClassCounts['GradeClass'] = [gradeClasses[int(x)] for x in gradeClassCounts['GradeClass']]
@@ -186,6 +187,51 @@ gradeClassPieChart.update_layout(
     paper_bgcolor='#212529',
     title_font_color='#f8f9fa',
     legend_title_text='Grades',
+    legend=dict(
+        font=dict(color='#f8f9fa'),
+        bgcolor='#343a40'
+    )
+)
+
+def GPAGradeClass(GPA):
+    if GPA < 2:
+        return 4
+    elif GPA < 2.5:
+        return 3
+    elif GPA < 3:
+        return 2
+    elif GPA < 3.5:
+        return 1
+    else:
+        return 0
+
+df_annotated = df.copy(deep=True)
+df_annotated['TotalExtracurricular'] = df_annotated[['Extracurricular', 'Sports', 'Music', 'Volunteering']].sum(axis=1)
+df_annotated['Tutoring_ParentalSupport'] = df_annotated['Tutoring'] * df_annotated['ParentalSupport']
+
+gpa_pred = model.predict(df_annotated.drop(['GPA', 'GradeClass', 'StudentID'], axis=1))
+gradeClass_pred = [GPAGradeClass(x) for x in gpa_pred]
+
+df_annotated['GPA_pred'] = gpa_pred
+df_annotated['GradeClass_pred'] = gradeClass_pred
+
+failing_students = df[df['GradeClass'] == 4].shape[0]
+at_risk_students = df_annotated[df_annotated['GPA_pred'] < 2].shape[0]
+watchlist_candidates = df_annotated[(df_annotated['GradeClass_pred'] > df_annotated['GradeClass']) & (df_annotated['GPA_pred'] >= 2)].shape[0]
+predicted_improvement = df_annotated[df_annotated['GPA_pred'] > df_annotated['GPA']].shape[0]
+
+students_of_interest = pd.DataFrame([
+    {'category': 'Failing', 'count': failing_students},
+    {'category': 'At risk', 'count': at_risk_students},
+    {'category': 'Watchlist candidate', 'count': watchlist_candidates},
+    {'category': 'Predicted improvement', 'count': predicted_improvement}
+])
+
+interestingStudentPieChart = px.pie(students_of_interest, values='count', names='category', title='Students of interest')
+interestingStudentPieChart.update_layout(
+    paper_bgcolor='#212529',
+    title_font_color='#f8f9fa',
+    legend_title_text=' Student type',
     legend=dict(
         font=dict(color='#f8f9fa'),
         bgcolor='#343a40'
@@ -219,7 +265,16 @@ app.layout = dbc.Container(
                         className="shadow-sm",
                         style={
                             "padding": "10px",
-                            "maxWidth": "600px",
+                            "margin": "0 auto",
+                            "borderRadius": "10px",
+                            "backgroundColor": "#212529",
+                        }
+                    ),
+                    dbc.Col(
+                        dcc.Graph(figure=interestingStudentPieChart),
+                        className="shadow-sm",
+                        style={
+                            "padding": "10px",
                             "margin": "0 auto",
                             "borderRadius": "10px",
                             "backgroundColor": "#212529",
@@ -231,13 +286,13 @@ app.layout = dbc.Container(
         ],
         className="shadow-sm",
         style={
-            "maxWidth": "600px",
+            "maxWidth": "75%",
             "margin": "0 auto",
             "borderRadius": "10px",
             "backgroundColor": "#212529",
         }),
 
-        
+        html.Br(),
 
         dbc.Row([
             dbc.Col(dbc.Card(
@@ -284,6 +339,7 @@ app.layout = dbc.Container(
     className="py-5",
 )
 
+
 @app.callback(
     Output("prediction-output", "children"),
     Input("predict-btn", "n_clicks"),
@@ -321,8 +377,9 @@ def predict(n_clicks, *input_values):
 
         features = pd.DataFrame([features])
         prediction = model.predict(features)[0]
+        gradeClass = gradeClasses[GPAGradeClass(prediction)]
         return html.Span(
-            f"Predicted Grade: {prediction:.2f}",
+            f"Predicted Grade: {prediction:.2f} ('{gradeClass}')",
             style={"color": "#28a745"},
         )
     except Exception as e:
