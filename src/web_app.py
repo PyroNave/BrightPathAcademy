@@ -246,99 +246,111 @@ app.layout = dbc.Container(
             className="text-center my-4 fw-bold",
             style={"color": "#f8f9fa"},
         ),
+
         dcc.Markdown(
             "### Where student data becomes insight",
             className="text-center mb-5 text-muted",
         ),
 
-        dbc.Card(
-        [
-            dbc.CardHeader(
-                "Student analytics",
-                className="text-center fw-bold fs-5",
-                style={"backgroundColor": "#343a40", "color": "#f8f9fa"},
-            ),
-            dbc.CardBody(
-                [dbc.Row([
-                    dbc.Col(
-                        dcc.Graph(figure=gradeClassPieChart),
-                        className="shadow-sm",
-                        style={
-                            "padding": "10px",
-                            "margin": "0 auto",
-                            "borderRadius": "10px",
-                            "backgroundColor": "#212529",
-                        }
-                    ),
-                    dbc.Col(
-                        dcc.Graph(figure=interestingStudentPieChart),
-                        className="shadow-sm",
-                        style={
-                            "padding": "10px",
-                            "margin": "0 auto",
-                            "borderRadius": "10px",
-                            "backgroundColor": "#212529",
-                        }
-                    ),
-                ])],
-                className="p-4",
-            ),
-        ],
-        className="shadow-sm",
-        style={
-            "maxWidth": "75%",
-            "margin": "0 auto",
-            "borderRadius": "10px",
-            "backgroundColor": "#212529",
-        }),
-
-        html.Br(),
-
-        dbc.Row([
-            dbc.Col(dbc.Card(
-                [
-                    dbc.CardHeader(
-                        "Predict Student Grade",
-                        className="text-center fw-bold fs-5",
-                        style={"backgroundColor": "#343a40", "color": "#f8f9fa"},
-                    ),
-                    dbc.CardBody(
-                        [create_form_row(field) for field in INPUT_FIELDS],
-                        className="p-4",
-                    ),
-                    dbc.CardFooter(
-                        dbc.Button(
-                            "Predict Grade",
-                            id="predict-btn",
-                            color="primary",
-                            className="w-100 fw-bold",
-                            size="lg",
+        dbc.Tabs([
+                dbc.Tab(
+                    [
+                        dbc.Card(
+                            [
+                                dbc.CardHeader(
+                                    "Student analytics",
+                                    className="text-center fw-bold fs-5",
+                                    style={"backgroundColor": "#343a40", "color": "#f8f9fa"},
+                                ),
+                                dbc.CardBody(
+                                    [dbc.Row([
+                                        dbc.Col(
+                                            dcc.Graph(figure=gradeClassPieChart),
+                                            className="shadow-sm",
+                                            style={
+                                                "padding": "10px",
+                                                "margin": "0 auto",
+                                                "borderRadius": "10px",
+                                                "backgroundColor": "#212529",
+                                            }
+                                        ),
+                                        dbc.Col(
+                                            dcc.Graph(figure=interestingStudentPieChart),
+                                            className="shadow-sm",
+                                            style={
+                                                "padding": "10px",
+                                                "margin": "0 auto",
+                                                "borderRadius": "10px",
+                                                "backgroundColor": "#212529",
+                                            }
+                                        ),
+                                    ])],
+                                    className="p-4",
+                                ),
+                            ],
+                            className="shadow-sm",
+                            style={
+                                "maxWidth": "75%",
+                                "margin": "0 auto",
+                                "borderRadius": "10px",
+                                "backgroundColor": "#212529",
+                            }
                         ),
-                        className="p-0",
-                    ),
-                ],
-                className="shadow-sm",
-                style={
-                    "maxWidth": "600px",
-                    "margin": "0 auto",
-                    "borderRadius": "10px",
-                    "backgroundColor": "#212529",
-                })
-            ),
-        ]),
-        
-        
-        
-        html.Div(
-            id="prediction-output",
-            className="mt-5 text-center fw-bold",
-            style={"fontSize": "1.5rem", "color": "#f8f9fa"},
+                    ],
+                    label='Analytics',
+                ),
+
+                dbc.Tab([
+                        dbc.Row([
+                            dbc.Col(dbc.Card(
+                                [
+                                    dbc.CardHeader(
+                                        "Predict Student Grade",
+                                        className="text-center fw-bold fs-5",
+                                        style={"backgroundColor": "#343a40", "color": "#f8f9fa"},
+                                    ),
+                                    dbc.CardBody(
+                                        [create_form_row(field) for field in INPUT_FIELDS],
+                                        className="p-4",
+                                    ),
+                                    dbc.CardFooter(
+                                        dbc.Button(
+                                            "Predict Grade",
+                                            id="predict-btn",
+                                            color="primary",
+                                            className="w-100 fw-bold",
+                                            size="lg",
+                                        ),
+                                        className="p-0",
+                                    ),
+                                ],
+                                className="shadow-sm",
+                                style={
+                                    "maxWidth": "600px",
+                                    "margin": "0 auto",
+                                    "borderRadius": "10px",
+                                    "backgroundColor": "#212529",
+                                })
+                            ),
+                        ]),
+                        html.Div(
+                            id="prediction-output",
+                            className="mt-5 text-center fw-bold",
+                            style={"fontSize": "1.5rem", "color": "#f8f9fa"},
+                        ),
+                    ],
+                    label='Predictions',
+                ),
+            ],
+            style={
+                "maxWidth": "75%",
+                "margin": "0 auto",
+            }
         ),
     ],
     fluid=True,
     className="py-5",
 )
-
 
 @app.callback(
     Output("prediction-output", "children"),
@@ -385,7 +397,5 @@ def predict(n_clicks, *input_values):
     except Exception as e:
         return html.Span(f"Error: {str(e)}", style={"color": "#dc3545"})
 
-
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=8050)
-
