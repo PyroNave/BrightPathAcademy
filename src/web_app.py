@@ -4,6 +4,8 @@ from analytics_tab import TAB as anal_tab
 from dash import html, dcc
 from app_var import app
 
+server = app.server
+
 app.layout = dbc.Container(
     [
         # Header
