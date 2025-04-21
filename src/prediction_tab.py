@@ -1,6 +1,9 @@
+from io import StringIO
+from _plotly_utils.utils import base64
+import dash
 import dash_bootstrap_components as dbc
 from app_var import app
-from modeling import GradeClassLabel, Predict, feature_names
+from inference import GradeClassLabel, Predict, feature_names
 import pandas as pd
 from dash import html, dcc
 from dash.dependencies import Input, Output, State
@@ -165,43 +168,82 @@ def create_form_row(field):
 
 TAB = dbc.Tab([
         dbc.Row([
-            dbc.Col(dbc.Card(
+            dbc.Col(
                 [
-                    dbc.CardHeader(
-                        "Predict Student Grade",
-                        className="text-center fw-bold fs-5",
-                        style={"backgroundColor": "#343a40", "color": "#f8f9fa"},
-                    ),
-                    dbc.CardBody(
-                        [create_form_row(field) for field in INPUT_FIELDS],
-                        className="p-4",
-                    ),
-                    dbc.CardFooter(
-                        dbc.Button(
-                            "Predict Grade",
-                            id="predict-btn",
-                            color="primary",
-                            className="w-100 fw-bold",
-                            size="lg",
+                    dbc.Card(
+                    [
+                        dbc.CardHeader(
+                            "Prediction form",
+                            className="text-center fw-bold fs-5",
+                            style={"backgroundColor": "#343a40", "color": "#f8f9fa"},
                         ),
-                        className="p-0",
+                        dbc.CardBody(
+                            [create_form_row(field) for field in INPUT_FIELDS],
+                            className="p-4",
+                        ),
+                        dbc.CardFooter(
+                            dbc.Button(
+                                "Predict Grade",
+                                id="predict-btn",
+                                color="primary",
+                                className="w-100 fw-bold",
+                                size="lg",
+                            ),
+                            className="p-0",
+                        ),
+                    ],
+                    className="shadow-sm",
+                    style={
+                        "margin": "0 auto",
+                        "borderRadius": "10px",
+                        "backgroundColor": "#212529",
+                    }),
+                    html.Div(
+                        id="prediction-output",
+                        className="mt-5 text-center fw-bold",
+                        style={"fontSize": "1.5rem", "color": "#f8f9fa"},
                     ),
                 ],
-                className="shadow-sm",
-                style={
-                    "maxWidth": "600px",
-                    "margin": "0 auto",
-                    "borderRadius": "10px",
-                    "backgroundColor": "#212529",
-                })
             ),
-        ]),
-        html.Div(
-            id="prediction-output",
-            className="mt-5 text-center fw-bold",
-            style={"fontSize": "1.5rem", "color": "#f8f9fa"},
+            dbc.Col(
+                [
+                    dbc.Card(
+                        [
+                            dbc.CardHeader(
+                                "File upload",
+                                className="text-center fw-bold fs-5",
+                                style={"backgroundColor": "#343a40", "color": "#f8f9fa"},
+                            ),
+                            dbc.CardBody(
+                                [
+                                    dcc.Upload(
+                                        'Upload csv',
+                                        id='upload-data',
+                                        multiple=False,
+                                        className="text-center",
+                                        style={
+                                            "backgroundColor": "#060606",
+                                            "padding": "5px"
+                                        }
+                                    ),
+                                    dcc.Download(id='download-predictions')
+                                ],
+                                className="p-4",
+                            )
+                        ]
+                    )
+                ],
+            ),
+        ],
+            style={
+                "maxWidth": "75%",
+                "margin": "0 auto",
+                "borderRadius": "10px",
+                "backgroundColor": "#212529",
+            }
         ),
     ],
+
     label='Predictions',
 )
 
@@ -233,3 +275,28 @@ def predict(n_clicks, *input_values):
         )
     except Exception as e:
         return html.Span(f"Error: {str(e)}", style={"color": "#dc3545"})
+
+@app.callback(
+    Output('download-predictions', 'data'),
+    Input('upload-data', 'contents'),
+    State('upload-data', 'filename'),
+    prevent_initial_call=True
+)
+def handle_upload(contents, filename):
+    if contents is None:
+        return dash.no_update
+
+    content_type, content_string = contents.split(',')
+    decoded = base64.b64decode(content_string)
+    s = StringIO(decoded.decode('utf-8'))
+    df = pd.read_csv(s)
+
+    # Run your prediction model
+    result_df = Predict(df)
+
+    # Convert back to CSV for download
+    out_buffer = StringIO()
+    result_df.to_csv(out_buffer, index=False)
+    out_buffer.seek(0)
+
+    return dict(content=out_buffer.getvalue(), filename="predictions.csv")

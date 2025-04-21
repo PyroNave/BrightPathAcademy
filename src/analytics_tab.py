@@ -2,7 +2,7 @@ import pandas as pd
 from dash import dcc
 import dash_bootstrap_components as dbc
 from data import df
-from modeling import GradeClassLabel, Predict
+from inference import GradeClassLabel, Predict
 import plotly.express as px
 
 gradeClassCounts = df['GradeClass'].value_counts().reset_index()
