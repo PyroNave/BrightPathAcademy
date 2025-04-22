@@ -1,6 +1,8 @@
 import numpy as np
+import pandas as pd
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.metrics import classification_report, mean_absolute_error, mean_squared_error, r2_score
+
 
 class CustomModel(BaseEstimator, ClassifierMixin):
     def __init__(self, regressor, scaler):
@@ -20,7 +22,7 @@ class CustomModel(BaseEstimator, ClassifierMixin):
             return 0
 
     def _preprocess(self, X):
-        ret = X.copy(deep=True)
+        ret = X.copy(deep=True)[self.feature_names_in_]
         ret[['StudyTimeWeekly', 'Absences']] = self.scaler.transform(ret[['StudyTimeWeekly', 'Absences']])
         ret['TotalExtracurricular'] = ret[['Extracurricular', 'Sports', 'Music', 'Volunteering']].sum(axis=1)
         ret['Tutoring_ParentalSupport'] = ret['Tutoring'] * ret['ParentalSupport']
@@ -36,35 +38,37 @@ class CustomModel(BaseEstimator, ClassifierMixin):
         gpa_pred = self.regressor.predict(X)
         gradeclass_pred = self._postprocess(gpa_pred)
 
-        return gradeclass_pred
+        return pd.DataFrame({'GPA': gpa_pred, 'GradeClass': gradeclass_pred})
 
     def fit(self, X, y_gpa, preprocess=True):
         copy = X.copy(deep=True)
+        if not preprocess:
+            self.feature_names_in_ = X.drop(['TotalExtracurricular', 'Tutoring_ParentalSupport'], axis=1).columns
+        else:
+            self.feature_names_in_ = X.columns
 
         if preprocess:
-            copy[['StudyTimeWeekly', 'Absences']] = self.scaler.fit_transform(copy[['StudyTimeWeekly', 'Absences']])
+            X = self._preprocess(X)
 
         self.regressor.fit(copy, y_gpa)
         return self
 
     def score(self, X, gradeclass_true, preprocess=True):
-        gradeclass_pred = self.predict(X, preprocess=preprocess)
+        gradeclass_pred = self.predict(X, preprocess=preprocess)['GradeClass']
         accuracy = np.mean(gradeclass_pred == gradeclass_true)
         return accuracy
 
     def print_report(self, X_test, y_test, preprocess=True):
-        X = X_test
-        if preprocess:
-            X = self._preprocess(X_test)
+        y_pred = self.predict(X_test, preprocess=preprocess)
+        gpa_pred = y_pred['GPA']
+        gradeclass_pred = y_pred['GradeClass']
 
-        gpa_pred = self.regressor.predict(X)
         print("Regression metrics:")
         print(f"\tMAE: {mean_absolute_error(y_test, gpa_pred):.4f}")
         print(f"\tMSE: {mean_squared_error(y_test, gpa_pred):.4f}")
         print(f"\tRMSE: {np.sqrt(mean_squared_error(y_test, gpa_pred)):.4f}")
         print(f"\tR²: {r2_score(y_test, gpa_pred):.4f}")
 
-        gradeclass_pred = [self._gpa_to_grade(gpa) for gpa in gpa_pred]
         gradeclass_true = [self._gpa_to_grade(gpa) for gpa in y_test]
         print("Classification Metrics:")
         print(classification_report(gradeclass_true, gradeclass_pred, target_names=['A', 'B', 'C', 'D', 'F']))

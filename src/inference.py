@@ -1,5 +1,4 @@
 from paths import model_path
-from typing import cast
 import joblib
 import pandas as pd
 
@@ -20,6 +19,7 @@ feature_names = [
     "Volunteering",
 ]
 
+
 def GPAGradeClass(GPA: float) -> int:
     if GPA < 2:
         return 4
@@ -32,8 +32,10 @@ def GPAGradeClass(GPA: float) -> int:
     else:
         return 0
 
+
 def GradeClassLabel(GradeClass: int) -> str:
     return ['A', 'B', 'C', 'D', 'F'][GradeClass]
+
 
 def FeatureEngineer(x: pd.DataFrame) -> pd.DataFrame:
     ret = x.copy(deep=True)
@@ -42,13 +44,6 @@ def FeatureEngineer(x: pd.DataFrame) -> pd.DataFrame:
 
     return ret
 
+
 def Predict(x: pd.DataFrame) -> pd.DataFrame:
-    # Preprocessing
-    x_in = FeatureEngineer(cast(pd.DataFrame, x[feature_names]))
-
-    y_pred = model.predict(x_in)
-
-    # Postprocessing (regression -> classification)
-    y_pred_class = [GPAGradeClass(x) for x in y_pred]
-    return pd.DataFrame({'GPA': y_pred, 'GradeClass': y_pred_class})
-
+    return model.predict(x)
