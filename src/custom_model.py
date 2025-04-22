@@ -2,10 +2,11 @@ import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.metrics import classification_report, mean_absolute_error, mean_squared_error, r2_score
+from sklearn.preprocessing import StandardScaler
 
 
 class CustomModel(BaseEstimator, ClassifierMixin):
-    def __init__(self, regressor, scaler):
+    def __init__(self, regressor, scaler=None):
         self.scaler = scaler
         self.regressor = regressor
 
@@ -43,12 +44,17 @@ class CustomModel(BaseEstimator, ClassifierMixin):
     def fit(self, X, y_gpa, preprocess=True):
         copy = X.copy(deep=True)
         if not preprocess:
-            self.feature_names_in_ = X.drop(['TotalExtracurricular', 'Tutoring_ParentalSupport'], axis=1).columns
+            self.feature_names_in_ = copy.drop(['TotalExtracurricular', 'Tutoring_ParentalSupport'], axis=1).columns
         else:
-            self.feature_names_in_ = X.columns
+            self.feature_names_in_ = copy.columns
+
+        if self.scaler == None:
+            scaler = StandardScaler()
+            scaler.fit(copy[['StudyTimeWeekly', 'Absences']])
+            self.scaler = scaler
 
         if preprocess:
-            X = self._preprocess(X)
+            copy = self._preprocess(copy)
 
         self.regressor.fit(copy, y_gpa)
         return self
